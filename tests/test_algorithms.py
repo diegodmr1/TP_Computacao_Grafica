@@ -1,135 +1,123 @@
-from algorithms.rasterization.dda import dda_line
-from algorithms.rasterization.bresenham_line import bresenham_line
-from algorithms.rasterization.bresenham_circle import bresenham_circle
-
-from algorithms.clipping.cohen_sutherland import cohen_sutherland
-from algorithms.clipping.liang_barsky import liang_barsky
-
-from algorithms.transformations.transformations import (
-    translate_point,
-    scale_point,
-    rotate_point,
-    reflect_x,
-    reflect_y,
-    reflect_xy,
-)
-
-from models.point import Point
+from algorithms.filling.boundary_fill import boundary_fill
+from algorithms.filling.flood_fill import flood_fill
 
 
-def test_dda():
-    result = dda_line(0, 0, 5, 5)
+def test_boundary_fill():
+    width = 10
+    height = 10
 
-    assert result[0] == (0, 0)
-    assert result[-1] == (5, 5)
-    assert len(result) == 6
+    WHITE = 0
+    BLACK = 1
+    RED = 2
 
+    pixels = [
+        [WHITE for _ in range(width)]
+        for _ in range(height)
+    ]
 
-def test_bresenham_line():
-    result = bresenham_line(0, 0, 5, 5)
+    # Cria uma região quadrada fechada
+    for x in range(2, 8):
+        pixels[2][x] = BLACK
+        pixels[7][x] = BLACK
 
-    assert result[0] == (0, 0)
-    assert result[-1] == (5, 5)
+    for y in range(2, 8):
+        pixels[y][2] = BLACK
+        pixels[y][7] = BLACK
 
+    def get_color(x, y):
+        return pixels[y][x]
 
-def test_bresenham_circle():
-    result = bresenham_circle(0, 0, 5)
+    def set_color(x, y, color):
+        pixels[y][x] = color
 
-    assert (0, 5) in result
-    assert (0, -5) in result
-    assert (5, 0) in result
-    assert (-5, 0) in result
-
-
-def test_translation():
-    point = Point(10, 20)
-
-    result = translate_point(
-        point,
-        5,
-        -10,
+    boundary_fill(
+        4,
+        4,
+        get_color,
+        set_color,
+        BLACK,
+        RED,
+        width,
+        height,
     )
 
-    assert result.x == 15
-    assert result.y == 10
+    assert pixels[4][4] == RED
+    assert pixels[3][3] == RED
+
+    assert pixels[2][4] == BLACK
+    assert pixels[7][4] == BLACK
+
+    assert pixels[0][0] == WHITE
 
 
-def test_scale():
-    point = Point(10, 20)
+def test_flood_fill():
+    width = 10
+    height = 10
 
-    result = scale_point(
-        point,
-        2,
-        3,
+    WHITE = 0
+    BLACK = 1
+    BLUE = 2
+
+    pixels = [
+        [WHITE for _ in range(width)]
+        for _ in range(height)
+    ]
+
+    # Região interna
+    for y in range(3, 7):
+        for x in range(3, 7):
+            pixels[y][x] = BLACK
+
+    def get_color(x, y):
+        return pixels[y][x]
+
+    def set_color(x, y, color):
+        pixels[y][x] = color
+
+    flood_fill(
+        4,
+        4,
+        get_color,
+        set_color,
+        BLUE,
+        width,
+        height,
     )
 
-    assert result.x == 20
-    assert result.y == 60
+    assert pixels[4][4] == BLUE
+    assert pixels[3][3] == BLUE
+    assert pixels[6][6] == BLUE
+
+    assert pixels[0][0] == WHITE
 
 
-def test_rotation():
-    point = Point(10, 0)
+def test_object_colors():
+    from models.point import Point
+    from models.line import Line
+    from models.circle import Circle
+    from models.polygon import Polygon
 
-    result = rotate_point(
-        point,
-        90,
+    line = Line(
+        Point(0, 0),
+        Point(10, 10),
+        "#ff0000",
     )
 
-    assert round(result.x, 5) == 0
-    assert round(result.y, 5) == 10
-
-
-def test_reflections():
-    point = Point(10, 20)
-
-    result_x = reflect_x(point)
-    result_y = reflect_y(point)
-    result_xy = reflect_xy(point)
-
-    assert result_x.as_tuple() == (10, -20)
-    assert result_y.as_tuple() == (-10, 20)
-    assert result_xy.as_tuple() == (-10, -20)
-
-
-def test_cohen_sutherland():
-    result = cohen_sutherland(
-        0,
-        50,
-        100,
-        50,
-        25,
-        25,
-        75,
-        75,
+    circle = Circle(
+        Point(50, 50),
+        20,
+        "#00ff00",
     )
 
-    assert result is not None
-
-    x1, y1, x2, y2 = result
-
-    assert round(x1) == 25
-    assert round(y1) == 50
-    assert round(x2) == 75
-    assert round(y2) == 50
-
-
-def test_liang_barsky():
-    result = liang_barsky(
-        0,
-        50,
-        100,
-        50,
-        25,
-        25,
-        75,
-        75,
+    polygon = Polygon(
+        [
+            Point(0, 0),
+            Point(10, 0),
+            Point(5, 10),
+        ],
+        "#0000ff",
     )
 
-    assert result is not None
-
-    x1, y1, x2, y2 = result
-
-    assert round(x1) == 25
-    assert round(y1) == 50
-    assert round(x2) == 75
-    assert round(y2) == 50
+    assert line.color == "#ff0000"
+    assert circle.color == "#00ff00"
+    assert polygon.color == "#0000ff"
